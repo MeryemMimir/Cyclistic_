@@ -1,0 +1,353 @@
+---
+title: "Capstone_Cyclistic"
+author: "Meryem Mimir"
+date: "2022-11-30"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Capstone Project ~ Cyclistic
+
+This is an R Markdown document for my  Capstone Project of Google Data Analytics Training on Coursera.
+In this document you will find all the steps taken on the way of the project and scripts of codes on these steps.
+
+### Preparing Data
+
+#### Downloading Data
+
+Necessary packages and their libraries were installed
+```{r}
+
+install.packages("tidyverse", repos = "http://cran.us.r-project.org")
+install.packages("ggplot2", repos = "http://cran.us.r-project.org")
+install.packages("dplyr", repos = "http://cran.us.r-project.org")
+install.packages("readxl", repos = "http://cran.us.r-project.org")
+install.packages('rlang',repos = "http://cran.us.r-project.org")
+
+library("tidyverse")
+library("ggplot2")
+library("dplyr")
+library("readxl")
+library("rlang")
+```
+
+Data is downloaded from this address: https://divvy-tripdata.s3.amazonaws.com/index.html. in order to import data to RStudio, these links have been used:
+
+```{r pressure, echo=FALSE}
+Trips_202110 <- read.csv("datalar/202110-divvy-tripdata.csv")
+Trips_202111 <- read.csv("datalar/202111-divvy-tripdata.csv")
+Trips_202112 <- read.csv("datalar/202112-divvy-tripdata.csv")
+Trips_202201 <- read.csv("datalar/202201-divvy-tripdata.csv")
+Trips_202202 <- read.csv("datalar/202202-divvy-tripdata.csv")
+Trips_202203 <- read.csv("datalar/202203-divvy-tripdata.csv")
+Trips_202204 <- read.csv("datalar/202204-divvy-tripdata.csv")
+Trips_202205 <- read.csv("datalar/202205-divvy-tripdata.csv")
+Trips_202206 <- read.csv("datalar/202206-divvy-tripdata.csv")
+Trips_202207 <- read.csv("datalar/202207-divvy-tripdata.csv")
+Trips_202208 <- read.csv("datalar/202208-divvy-tripdata.csv")
+Trips_202209 <- read.csv("datalar/202209-divvy-tripdata.csv")
+Trips_202210 <- read.csv("datalar/202210-divvy-tripdata.csv")
+```
+
+#### Binding Data
+
+All the dataframes combined into a new dataframe:
+
+```{r}
+data <- rbind(Trips_202210,
+              Trips_202209,
+              Trips_202208,
+              Trips_202207,
+              Trips_202206,
+              Trips_202205,
+              Trips_202204,
+              Trips_202203,
+              Trips_202202,
+              Trips_202201,
+              Trips_202112,
+              Trips_202111)
+```
+
+#### Checking Data 
+1. Data was checked if  there is any NA entries in any vector
+
+```{r}
+#is there a null entry in any vector
+
+sum(is.na(data$ride_id))
+sum(is.na(data$rideable_type))
+sum(is.na(data$started_at))
+sum(is.na(data$ended_at))
+sum(is.na(data$start_station_name))
+sum(is.na(data$start_station_id))
+sum(is.na(data$end_station_name))
+sum(is.na(data$end_station_id))
+sum(is.na(data$start_lat))
+sum(is.na(data$start_lng))
+sum(is.na(data$end_lat))#5835 null values
+sum(is.na(data$end_lng))#5835 null values
+sum(is.na(data$member_casual))
+```
+
+2. Data was checked if  there is any null entries in any vector
+
+```{r}
+sum(data$ride_id == "")
+sum(data$rideable_type == "")
+sum(data$started_at == "")
+sum(data$ended_at == "")
+sum(data$start_station_name == "")#878177
+sum(data$start_station_id == "")#878177
+sum(data$end_station_name == "")#940010
+sum(data$end_station_id == "")#940010
+sum(data$start_lat == "")
+sum(data$start_lng == "")
+sum(data$end_lat == "")
+sum(data$end_lng == "")
+sum(data$member_casual == "")
+```
+
+3. Variables of "member_casual" and "rideable_type" were checked if there are different values other than their parameters
+
+```{r}
+# check the distinct values in membership vector
+unique(data$member_casual)
+
+# > unique(data$member_casual)
+# [1] "member" "casual"
+
+# check the distinct values in rideable_type vector
+unique(data$rideable_type)
+
+#unique(data$rideable_type)
+#[1] "classic_bike"  "electric_bike" "docked_bike"
+```
+
+#### Preparing Data
+
+1. A new variable was added to the dataframe: Travel time (ride length) of each trip.
+```{r}
+#calculate the travel time of each trip
+
+data$started_at_newformat <- as.POSIXct(data$started_at, format="%Y-%m-%d %H:%M:%OS")
+
+data$ended_at_newformat <- as.POSIXct(data$ended_at, format="%Y-%m-%d %H:%M:%OS")
+
+data$ride_length_min <- difftime(data$ended_at_newformat, data$started_at_newformat,units = "mins") 
+
+```
+
+2. This new variable was checked if there is any zero or negative entries.
+
+```{r}
+#check if there is any zero and negative data in ride_length vector.
+
+sum(data$ride_length ==0,na.rm=T) #454
+
+sum(data$ride_length < 0,na.rm=T) #112
+
+```
+
+3. A new variable was added to the dataframe : day_of_week. This gives the day information of the starting date of each ride.
+```{r}
+#calculate day of week each ride started
+
+data$started_at_date <- as.Date(data$started_at)
+
+data$day_of_week <- weekdays(data$started_at_date)
+
+data$ride_length <- as.numeric(data$ride_length_min)
+
+```
+ 4. 3 new variables were added to the dataframe: Day,month and year infos of the starting date of each ride.
+ 
+```{r}
+data$month <- format(as.Date(data$started_at_date), "%m")
+
+data$day <- format(as.Date(data$started_at_date), "%d")
+
+data$year <- format(as.Date(data$started_at_date), "%Y")
+```
+ 
+5. A new vector was added to the dataset : Mode_day_of_week
+```{r}
+#create a mode function in r
+
+ getmode <- function(x) {
+   uniqv <- unique(x)
+   uniqv[which.max(tabulate(match(x, uniqv)))]
+ }
+# calculate mode of day of week
+
+ Mode_day_of_week <- getmode(data$day_of_week)
+
+# Add columns that list the date, month, day, and year of each ride
+# This will allow us to aggregate ride data for each month, day, or year ... before completing these operations we could only aggregate at the ride level
+
+```
+
+### Cleaning Data
+
+1. The data was filtered from entries in which start_station_name, start_station_id, end_station_name, end_station_id variables were null
+
+```{r}
+data_clean <-
+data%>% 
+  filter( start_station_name != ""&
+          start_station_id != ""&
+          end_station_name != ""&
+          end_station_id != "")
+```
+
+2. The data was filtered from entries in which ride_length variables are null or 0 or negative.
+
+
+```{r}
+data_clean <- 
+  data_clean%>% 
+  drop_na(ride_length) %>% 
+  filter(ride_length > 0)
+```
+
+  
+3. The vectors modified were checked again.
+  
+```{r}
+
+#Checking the vectors modified.
+
+sum(data_clean$ride_length ==0)
+sum(data_clean$ride_length =="")
+sum(is.na(data_clean$ride_length))
+sum(data_clean$start_station_name == "")
+sum(data_clean$start_station_id == "")
+sum(data_clean$end_station_name == "")
+sum(data_clean$end_station_id == "")
+```
+
+## Descriptive Analysis
+
+After processing the data, a descriptive analysis was done.
+
+1. Average of the travel time of all rides was calculated.
+
+```{r}
+#calculate mean of ride_length_min
+
+Average_travel_time <- mean(data_clean$ride_length) #17.245
+```
+
+  
+2. Median  of the travel time of all rides was calculated.
+
+```{r}
+#calculate median of ride_length_min
+
+Median_travel_time <- median(data_clean$ride_length)
+```
+
+  
+3. Maximum travel time was calculated.
+
+```{r}
+#calculate max of ride_length_min
+
+Max_travel_time <- max(data_clean$ride_length)
+```
+
+4. Minimum travel time was calculated.
+```{r}
+#calculate min of ride_length_min
+
+Min_travel_time <- min(data_clean$ride_length) # 0.01667
+```
+  
+
+5. Summary of the travel time is
+
+```{r}
+summary <- summary(data_clean$ride_length)
+
+   # Min.  1st Qu.   Median     Mean  3rd Qu.     Max. 
+   #  0.02     6.08    10.67    17.24    19.12 34294.07 
+
+```
+
+
+6. Aggregate functions for members and casuals. 
+```{r}
+# aggregate functions for members vs casuals
+
+aggregate(data_clean$ride_length ~ data_clean$member_casual, FUN = mean)
+#    data_clean$member_casual data_clean$ride_length
+# 1                   casual               24.40240
+# 2                   member               12.45523
+
+aggregate(data_clean$ride_length ~ data_clean$member_casual, FUN = min)
+#  data_clean$member_casual data_clean$ride_length
+# 1                   casual             0.01666667
+# 2                   member             0.01666667
+
+aggregate(data_clean$ride_length ~ data_clean$member_casual, FUN = max)
+# data_clean$member_casual data_clean$ride_length
+# 1                   casual              34294.067
+# 2                   member               1492.917
+
+aggregate(data_clean$ride_length ~ data_clean$member_casual, FUN = median)
+
+#   data_clean$member_casual data_clean$ride_length
+# 1                   casual               14.01667
+# 2                   member                9.00000
+```
+  
+  
+7. Average travel time by each day for members vs casual users was calculated
+```{r}
+# average travel time by each day for members vs casual users
+
+aggregate(data_clean$ride_length ~ data_clean$member_casual+data_clean$day_of_week, FUN = mean)
+```
+
+  
+### Visualization
+  
+1. This viz shows us the number of rides of each user type
+
+```{r}
+data_clean %>% 
+  group_by(member_casual,day_of_week) %>%  #groups by usertype and weekday
+  summarise(number_of_rides = n()							#calculates the number of rides  
+  ,average_duration = mean(ride_length)) %>% 		# calculates the average duration
+  arrange(member_casual, day_of_week)		%>% 						# sorts
+  
+  ggplot(aes(x = day_of_week, y = number_of_rides,fill = member_casual)) + #visualize it for number_of_rides
+  geom_col(position = "dodge" )+
+  scale_fill_manual(values = c(member = "lightblue",casual = "lightpink"))
+
+```
+
+
+![number of rides on each day of each user type](http://127.0.0.1:62868/chunk_output/B9340356E25741FC/A4A29437/cpxirr70470q7/000010.png)
+
+2. This viz shows us the average travel time of each user type
+
+```{r}
+data_clean %>% 
+  group_by(member_casual, day_of_week) %>%  #groups by usertype and weekday
+  summarise(number_of_rides = n()							#calculates the number of rides and average duration 
+  ,average_duration = mean(ride_length)) %>% 		# calculates the average duration
+  arrange(member_casual, day_of_week)		%>% 						# sorts
+
+  ggplot(aes(x = day_of_week, y = average_duration, fill = member_casual)) + #visualize it for average_duration
+  geom_col(position = "dodge")+
+  scale_fill_manual(values = c(member = "lightblue",casual = "lightpink"))
+```
+
+
+![average travel time on each day of each user type](http://127.0.0.1:62868/chunk_output/s/A4A29437/c0sxp1cu6mr0m/000012.png)
+
